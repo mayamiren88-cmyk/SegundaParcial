@@ -1,0 +1,286 @@
+@page "/inventario"
+
+<h2 class="mb-4">Productos</h2>
+
+@if (!string.IsNullOrEmpty(mensajeError))
+{
+    <div class="alert alert-danger col-md-8" role="alert">
+        @mensajeError
+    </div>
+}
+
+<div class="container-fluid p-0">
+    <div class="row mb-3 align-items-center">
+        <label for="txtInventario" class="col-sm-2 col-form-label">Inventario</label>
+        <div class="col-sm-10">
+            <input type="number" id="txtInventario" class="form-control" style="max-width: 600px;" @bind="inventarioActual" />
+        </div>
+    </div>
+
+    <div class="row mb-3 align-items-center">
+        <label for="txtNombre" class="col-sm-2 col-form-label">Nombre</label>
+        <div class="col-sm-10">
+            <input type="text" id="txtNombre" class="form-control" style="max-width: 600px;" @bind="nombreActual" />
+        </div>
+    </div>
+
+    <div class="row mb-4 align-items-center">
+        <label class="col-sm-2 col-form-label">Departamento</label>
+        <div class="col-sm-10 d-flex gap-3">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="departamento" id="deptoFrutas" value="Frutas" 
+                       checked="@(departamentoActual == "Frutas")" 
+                       @onchange='() => departamentoActual = "Frutas"'>
+                <label class="form-check-label" for="deptoFrutas">Frutas</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="departamento" id="deptoVerduras" value="Verduras" 
+                       checked="@(departamentoActual == "Verduras")" 
+                       @onchange='() => departamentoActual = "Verduras"'>
+                <label class="form-check-label" for="deptoVerduras">Verduras</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="departamento" id="deptoLacteos" value="Lácteos" 
+                       checked="@(departamentoActual == "Lácteos")" 
+                       @onchange='() => departamentoActual = "Lácteos"'>
+                <label class="form-check-label" for="deptoLacteos">Lácteos</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-2">
+        @if (indiceEdicion == -1)
+        {
+            <button type="button" class="btn btn-primary" @onclick="Guardar">Guardar</button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-primary me-2" @onclick="Actualizar">Actualizar</button>
+            <button type="button" class="btn btn-danger" @onclick="Cancelar">Cancelar</button>
+        }
+    </div>
+
+    <div class="mb-4">
+        @if (!verExistencias)
+        {
+            <button type="button" class="btn btn-secondary" @onclick="ToggleVista">Existencias</button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-secondary" @onclick="ToggleVista">Listado</button>
+        }
+    </div>
+</div>
+
+<!-- VISTA 1: LISTADO DE PRODUCTOS -->
+@if (!verExistencias)
+{
+    <p class="text-secondary mb-2">Listado de productos</p>
+
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th>Inventario</th>
+                <th>Nombre</th>
+                <th>Departamento</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < listaInventarios.Count; i++)
+            {
+                int indice = i;
+                <tr>
+                    <td>@listaInventarios[indice]</td>
+                    <td>@listaNombres[indice]</td>
+                    <td>@listaDepartamentos[indice]</td>
+                    <td>
+                        <button type="button" class="btn btn-link text-danger p-0 me-3 fs-5" @onclick="() => Eliminar(indice)" title="Eliminar" style="text-decoration: none;">
+                            🗑️
+                        </button>
+                        <button type="button" class="btn btn-link text-primary p-0 fs-5" @onclick="() => CargarParaEditar(indice)" title="Editar" style="text-decoration: none;">
+                            ✏️
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p class="text-secondary mb-2">Existencias por departamento</p>
+
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th>Frutas</th>
+                <th>Verduras</th>
+                <th>Lácteos</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>@cantFrutas</td>
+                <td>@cantVerduras</td>
+                <td>@cantLacteos</td>
+            </tr>
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<int> listaInventarios = new();
+    private List<string> listaNombres = new();
+    private List<string> listaDepartamentos = new();
+
+    private int inventarioActual = 0;
+    private string nombreActual = "";
+    private string departamentoActual = "";
+    private string mensajeError = "";
+
+    private int indiceEdicion = -1;
+    private bool verExistencias = false;
+
+    private int cantFrutas = 0;
+    private int cantVerduras = 0;
+    private int cantLacteos = 0;
+
+    private void Guardar()
+    {
+        mensajeError = "";
+
+        if (string.IsNullOrWhiteSpace(nombreActual))
+        {
+            mensajeError = "El nombre del producto no puede estar vacío";
+            return;
+        }
+
+        bool existe = false;
+        for (int i = 0; i < listaInventarios.Count; i++)
+        {
+            if (listaInventarios[i] == inventarioActual)
+            {
+                existe = true;
+            }
+        }
+
+        if (existe)
+        {
+            mensajeError = "El número de inventario se encuentra registrado. Debe ser único";
+        }
+        else
+        {
+            listaInventarios.Add(inventarioActual);
+            listaNombres.Add(nombreActual);
+            listaDepartamentos.Add(departamentoActual);
+
+            CalcularExistencias();
+            LimpiarFormulario();
+        }
+    }
+
+    private void CargarParaEditar(int indice)
+    {
+        mensajeError = "";
+        indiceEdicion = indice;
+        inventarioActual = listaInventarios[indice];
+        nombreActual = listaNombres[indice];
+        departamentoActual = listaDepartamentos[indice];
+    }
+
+    private void Actualizar()
+    {
+        mensajeError = "";
+
+        if (string.IsNullOrWhiteSpace(nombreActual))
+        {
+            mensajeError = "El nombre del producto no puede estar vacío";
+            return;
+        }
+
+        bool existe = false;
+        for (int i = 0; i < listaInventarios.Count; i++)
+        {
+            if (listaInventarios[i] == inventarioActual && i != indiceEdicion)
+            {
+                existe = true;
+            }
+        }
+
+        if (existe)
+        {
+            mensajeError = "El número de inventario se encuentra registrado. Debe ser único";
+        }
+        else
+        {
+            listaInventarios[indiceEdicion] = inventarioActual;
+            listaNombres[indiceEdicion] = nombreActual;
+            listaDepartamentos[indiceEdicion] = departamentoActual;
+
+            indiceEdicion = -1;
+            CalcularExistencias();
+            LimpiarFormulario();
+        }
+    }
+
+    private void Cancelar()
+    {
+        indiceEdicion = -1;
+        mensajeError = "";
+        LimpiarFormulario();
+    }
+
+    private void Eliminar(int indice)
+    {
+        listaInventarios.RemoveAt(indice);
+        listaNombres.RemoveAt(indice);
+        listaDepartamentos.RemoveAt(indice);
+
+        if (indiceEdicion == indice)
+        {
+            Cancelar();
+        }
+        else if (indiceEdicion > indice)
+        {
+            indiceEdicion--;
+        }
+
+        CalcularExistencias();
+    }
+
+    private void ToggleVista()
+    {
+        verExistencias = !verExistencias;
+    }
+
+    private void CalcularExistencias()
+    {
+        cantFrutas = 0;
+        cantVerduras = 0;
+        cantLacteos = 0;
+
+        for (int i = 0; i < listaDepartamentos.Count; i++)
+        {
+            if (listaDepartamentos[i] == "Frutas")
+            {
+                cantFrutas++;
+            }
+            else if (listaDepartamentos[i] == "Verduras")
+            {
+                cantVerduras++;
+            }
+            else if (listaDepartamentos[i] == "Lácteos")
+            {
+                cantLacteos++;
+            }
+        }
+    }
+
+    private void LimpiarFormulario()
+    {
+        inventarioActual = 0;
+        nombreActual = "";
+        departamentoActual = "";
+    }
+}
